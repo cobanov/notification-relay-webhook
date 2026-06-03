@@ -13,6 +13,7 @@ class PreferencesManager(context: Context) {
         private const val PREFS_NAME = "notifrelay_prefs"
         private const val KEY_WEBHOOK_CONFIGS = "webhook_configs"
         private const val KEY_WEBHOOK_LOGS = "webhook_logs"
+        private const val KEY_NOTIFICATION_QUEUE = "notification_queue"
         private const val KEY_FORWARD_MODE = "forward_mode"
         private const val KEY_SELECTED_PACKAGES = "selected_packages"
         private const val KEY_IGNORE_ONGOING = "ignore_ongoing"
@@ -25,6 +26,7 @@ class PreferencesManager(context: Context) {
         private const val KEY_LAST_SEEN_VERSION_CODE = "last_seen_version_code"
         private const val DEFAULT_LOCAL_HTTP_PORT = 8787
         private const val MAX_LOGS = 200
+        private const val MAX_NOTIFICATION_HISTORY = 300
     }
 
     private val json = Json { ignoreUnknownKeys = true }
@@ -82,6 +84,66 @@ class PreferencesManager(context: Context) {
 
     fun clearWebhookLogs() {
         prefs.edit().remove(KEY_WEBHOOK_LOGS).apply()
+    }
+
+    // ── Notification queue ──────────────────────────────────────────────────
+    fun getNotificationQueue(): List<NotificationQueueItem> {
+        val queueJson = prefs.getString(KEY_NOTIFICATION_QUEUE, null) ?: return emptyList()
+        return try {
+            json.decodeFromString<List<NotificationQueueItem>>(queueJson)
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    fun enqueueNotification(
+        notification: NotificationData,
+        payload: String,
+        status: NotificationDeliveryStatus = NotificationDeliveryStatus.PENDING,
+        error: String? = null
+    ): NotificationQueueItem {
+        val item = NotificationQueueItem(
+            id = java.util.UUID.randomUUID().toString(),
+            createdAt = System.currentTimeMillis(),
+            notification = notification,
+            payload = payload,
+            status = status,
+            lastError = error
+        )
+        saveNotificationQueue((listOf(item) + getNotificationQueue()).take(MAX_NOTIFICATION_HISTORY))
+        return item
+    }
+
+    fun updateNotificationQueueItem(
+        id: String,
+        status: NotificationDeliveryStatus,
+        error: String? = null,
+        attempted: Boolean = true
+    ) {
+        val now = System.currentTimeMillis()
+        saveNotificationQueue(
+            getNotificationQueue().map { item ->
+                if (item.id != id) item else item.copy(
+                    status = status,
+                    attemptCount = item.attemptCount + if (attempted) 1 else 0,
+                    lastAttemptAt = if (attempted) now else item.lastAttemptAt,
+                    deliveredAt = if (status == NotificationDeliveryStatus.DELIVERED) now else item.deliveredAt,
+                    lastError = error
+                )
+            }
+        )
+    }
+
+    fun removeNotificationQueueItem(id: String) {
+        saveNotificationQueue(getNotificationQueue().filterNot { it.id == id })
+    }
+
+    fun clearNotificationQueue() {
+        prefs.edit().remove(KEY_NOTIFICATION_QUEUE).apply()
+    }
+
+    private fun saveNotificationQueue(items: List<NotificationQueueItem>) {
+        prefs.edit().putString(KEY_NOTIFICATION_QUEUE, json.encodeToString(items.take(MAX_NOTIFICATION_HISTORY))).apply()
     }
 
     // ── Local HTTP server ────────────────────────────────────────────────────

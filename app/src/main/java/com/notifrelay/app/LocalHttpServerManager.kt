@@ -186,7 +186,7 @@ object LocalHttpServerManager {
 
                     method == "GET" && (path == "/" || path == "/recent") -> {
                         val limit = queryParams["limit"]?.toIntOrNull()?.coerceIn(1, 100) ?: 50
-                        val items = RecentNotificationsStore.snapshot().take(limit)
+                        val items = recentNotificationsForResponse().take(limit)
                         val arr = items.joinToString(",") { NotificationPayloadBuilder.build(it) }
                         reply(200, """{"status":"ok","count":${items.size},"notifications":[$arr]}""")
                     }
@@ -204,7 +204,7 @@ object LocalHttpServerManager {
 
                     method == "GET" && path == "/health" -> {
                         val uptimeMs = System.currentTimeMillis() - serverStartTime.get()
-                        reply(200, """{"status":"ok","serverUptimeMs":$uptimeMs,"recentCount":${RecentNotificationsStore.snapshot().size}}""")
+                        reply(200, """{"status":"ok","serverUptimeMs":$uptimeMs,"recentCount":${recentNotificationsForResponse().size}}""")
                     }
 
                     else -> reply(
@@ -261,6 +261,15 @@ object LocalHttpServerManager {
         }
         writeHttpResponse(writer, 200, """{"status":"ok","count":${logs.size},"logs":[$logsJson]}""")
         return 200
+    }
+
+    private fun recentNotificationsForResponse(): List<NotificationData> {
+        val ctx = appContext
+        return if (ctx != null) {
+            PreferencesManager(ctx).getNotificationQueue().map { it.notification }
+        } else {
+            RecentNotificationsStore.snapshot()
+        }
     }
 
     private fun handleServerLogsRequest(writer: BufferedWriter, params: Map<String, String>): Int {

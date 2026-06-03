@@ -27,7 +27,11 @@ fun WhatsNewSheet(visible: Boolean, onDismiss: () -> Unit) {
             Text("• Filter by app (all / allowlist / blocklist)", style = MaterialTheme.typography.bodyMedium)
             Text("• Local HTTP server and delivery logs", style = MaterialTheme.typography.bodyMedium)
             Spacer(Modifier.height(20.dp))
-            Button(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
+            Button(
+                onClick = onDismiss,
+                shape = MaterialTheme.shapes.medium,
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Text("Got it")
             }
         }

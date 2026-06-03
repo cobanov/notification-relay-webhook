@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.asStateFlow
  * when the process dies.
  */
 object RecentNotificationsStore {
-    private const val MAX = 100
+    private const val MAX = 300
 
     private val _recent = MutableStateFlow<List<NotificationData>>(emptyList())
     val recent: StateFlow<List<NotificationData>> = _recent.asStateFlow()

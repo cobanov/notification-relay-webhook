@@ -46,7 +46,12 @@ class LocalHttpServerService : Service() {
                     return START_NOT_STICKY
                 }
                 serviceScope.launch {
-                    LocalHttpServerManager.syncWithPreferences(applicationContext)
+                    runCatching {
+                        LocalHttpServerManager.syncWithPreferences(applicationContext)
+                    }.onFailure {
+                        PreferencesManager(applicationContext).setLocalHttpEnabled(false)
+                        stopSelf()
+                    }
                 }
             }
         }
@@ -86,7 +91,7 @@ class LocalHttpServerService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle(getString(R.string.local_http_server_notification_title))
             .setContentText(getString(R.string.local_http_server_notification_text, port))
             .setContentIntent(pendingIntent)
@@ -101,11 +106,11 @@ class LocalHttpServerService : Service() {
         private const val ACTION_STOP = "com.notifrelay.app.action.LOCAL_HTTP_SERVER_STOP"
         const val EXTRA_OPEN_LOCAL_HTTP = "extra_open_local_http"
 
-        fun start(context: Context) {
+        fun start(context: Context): Boolean {
             val intent = Intent(context, LocalHttpServerService::class.java).apply { action = ACTION_START }
-            runCatching {
+            return runCatching {
                 androidx.core.content.ContextCompat.startForegroundService(context, intent)
-            }
+            }.isSuccess
         }
 
         fun stop(context: Context) {

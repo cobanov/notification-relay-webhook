@@ -16,12 +16,15 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import com.notifrelay.app.LocalHttpServerService
 import com.notifrelay.app.PreferencesManager
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LocalHttpSettingsScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val prefs = remember { PreferencesManager(context) }
+    val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     var enabled by remember { mutableStateOf(prefs.isLocalHttpEnabled()) }
     var port by remember { mutableStateOf(prefs.getLocalHttpPort().toString()) }
@@ -29,6 +32,7 @@ fun LocalHttpSettingsScreen(onBack: () -> Unit) {
     var token by remember { mutableStateOf(prefs.getLocalHttpToken()) }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Local HTTP server") },
@@ -46,10 +50,15 @@ fun LocalHttpSettingsScreen(onBack: () -> Unit) {
                 .padding(padding)
                 .padding(horizontal = 16.dp, vertical = 12.dp)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.38f)
+                )
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -68,32 +77,60 @@ fun LocalHttpSettingsScreen(onBack: () -> Unit) {
                             onCheckedChange = {
                                 enabled = it
                                 prefs.setLocalHttpEnabled(it)
-                                if (it) LocalHttpServerService.start(context) else LocalHttpServerService.stop(context)
+                                if (it) {
+                                    val started = LocalHttpServerService.start(context)
+                                    if (!started) {
+                                        enabled = false
+                                        prefs.setLocalHttpEnabled(false)
+                                        coroutineScope.launch {
+                                            snackbarHostState.showSnackbar("Local HTTP server could not be started")
+                                        }
+                                    }
+                                } else {
+                                    LocalHttpServerService.stop(context)
+                                }
                             }
                         )
                     }
                 }
             }
 
-            OutlinedTextField(
-                value = port,
-                onValueChange = { port = it.filter { c -> c.isDigit() }.take(5) },
-                label = { Text("Port") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth()
-            )
-            Button(
-                onClick = {
-                    port.toIntOrNull()?.let { prefs.setLocalHttpPort(it) }
-                    port = prefs.getLocalHttpPort().toString()
-                    if (enabled) LocalHttpServerService.start(context)
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) { Text("Save port") }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                OutlinedTextField(
+                    value = port,
+                    onValueChange = { port = it.filter { c -> c.isDigit() }.take(5) },
+                    label = { Text("Port") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.weight(1f)
+                )
+                Button(
+                    onClick = {
+                        port.toIntOrNull()?.let { prefs.setLocalHttpPort(it) }
+                        port = prefs.getLocalHttpPort().toString()
+                        if (enabled && !LocalHttpServerService.start(context)) {
+                            enabled = false
+                            prefs.setLocalHttpEnabled(false)
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar("Local HTTP server could not be restarted")
+                            }
+                        }
+                    },
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.height(56.dp)
+                ) { Text("Save") }
+            }
 
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.38f)
+                )
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -116,10 +153,13 @@ fun LocalHttpSettingsScreen(onBack: () -> Unit) {
                         )
                     }
                     if (authEnabled) {
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(6.dp))
                         Text(token, style = MaterialTheme.typography.bodySmall)
-                        Spacer(Modifier.height(8.dp))
-                        OutlinedButton(onClick = { token = prefs.regenerateLocalHttpToken() }) {
+                        Spacer(Modifier.height(6.dp))
+                        OutlinedButton(
+                            onClick = { token = prefs.regenerateLocalHttpToken() },
+                            shape = MaterialTheme.shapes.medium
+                        ) {
                             Text("Regenerate token")
                         }
                     }

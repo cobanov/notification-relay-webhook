@@ -55,7 +55,11 @@ fun OnboardingScreen(onFinish: () -> Unit) {
             )
 
             Spacer(Modifier.weight(1f))
-            Button(onClick = onFinish, modifier = Modifier.fillMaxWidth()) {
+            Button(
+                onClick = onFinish,
+                shape = MaterialTheme.shapes.medium,
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Text("Get started")
             }
             Spacer(Modifier.height(12.dp))

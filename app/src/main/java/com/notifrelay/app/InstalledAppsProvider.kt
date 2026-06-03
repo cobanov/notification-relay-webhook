@@ -7,7 +7,8 @@ import android.graphics.drawable.Drawable
 data class InstalledApp(
     val packageName: String,
     val label: String,
-    val icon: Drawable?
+    val icon: Drawable?,
+    val isSystemApp: Boolean
 )
 
 /**
@@ -28,7 +29,9 @@ object InstalledAppsProvider {
                 InstalledApp(
                     packageName = appInfo.packageName,
                     label = pm.getApplicationLabel(appInfo).toString(),
-                    icon = runCatching { pm.getApplicationIcon(appInfo) }.getOrNull()
+                    icon = runCatching { pm.getApplicationIcon(appInfo) }.getOrNull(),
+                    isSystemApp = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0 ||
+                        (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
                 )
             }
             .sortedBy { it.label.lowercase() }

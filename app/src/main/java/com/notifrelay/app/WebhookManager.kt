@@ -105,14 +105,14 @@ class WebhookManager(
                                 "HTTP ${response.code}: ${response.message}"
                             )
                             lastException = httpException
-                            errorMessage = httpException.message
+                            errorMessage = httpException.readableMessage()
                             shouldRetry = isRetryableException(httpException)
                         }
                     }
                     if (!shouldRetry) break
                 } catch (e: IOException) {
                     lastException = e
-                    errorMessage = e.message
+                    errorMessage = e.readableMessage()
                     shouldRetry = isRetryableException(e)
                     if (!shouldRetry) break
                 }
@@ -123,15 +123,25 @@ class WebhookManager(
                 }
             }
 
-            logWebhookCall(config.url, timestamp, statusCode, false, errorMessage, System.currentTimeMillis() - timestamp)
+            logWebhookCall(
+                config.url,
+                timestamp,
+                statusCode,
+                false,
+                errorMessage ?: lastException?.readableMessage(),
+                System.currentTimeMillis() - timestamp
+            )
             Result.failure(lastException ?: IOException("Max retries exceeded"))
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            logWebhookCall(config.url, timestamp, null, false, e.message, System.currentTimeMillis() - timestamp)
+            logWebhookCall(config.url, timestamp, null, false, e.readableMessage(), System.currentTimeMillis() - timestamp)
             Result.failure(e)
         }
     }
+
+    private fun Throwable.readableMessage(): String =
+        message?.takeIf { it.isNotBlank() } ?: javaClass.simpleName
 
     private fun String.redactSensitiveUrl(): String {
         var safe = this

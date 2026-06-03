@@ -28,10 +28,6 @@ class NotificationRelayService : NotificationListenerService() {
         if (prefs.getIgnoreOngoing() && isOngoing) return
         if (prefs.getIgnoreGroupSummary() && isGroupSummary) return
 
-        val mode = prefs.getForwardMode()
-        val selected = prefs.getSelectedPackages()
-        if (!ForwardMode.shouldForward(mode, selected, notification.packageName)) return
-
         val data = extract(notification, isOngoing, isGroupSummary)
 
         // Drop notifications with no usable content (e.g. pure group placeholders).
@@ -40,18 +36,41 @@ class NotificationRelayService : NotificationListenerService() {
         RecentNotificationsStore.add(data)
 
         val json = NotificationPayloadBuilder.build(data)
+
+        val mode = prefs.getForwardMode()
+        val selected = prefs.getSelectedPackages()
+        if (!ForwardMode.shouldForward(mode, selected, notification.packageName)) {
+            prefs.enqueueNotification(
+                notification = data,
+                payload = json,
+                status = NotificationDeliveryStatus.IGNORED,
+                error = "Filtered by ${mode.displayName.lowercase()}"
+            )
+            return
+        }
+
+        val queueItem = prefs.enqueueNotification(data, json)
         LocalHttpServerManager.publishPayload(json)
 
         val configs = prefs.getWebhookConfigs()
         if (configs.none { it.isEnabled }) return
 
         scope.launch {
-            WebhookManager(
-                webhookConfigs = configs,
+            val result = NotificationDelivery.sendPayload(
                 context = applicationContext,
+                payload = json,
                 sourcePackage = data.packageName,
-                payload = json
-            ).postData(json)
+                configs = configs
+            )
+            prefs.updateNotificationQueueItem(
+                id = queueItem.id,
+                status = if (result.isSuccess) {
+                    NotificationDeliveryStatus.DELIVERED
+                } else {
+                    NotificationDeliveryStatus.FAILED
+                },
+                error = result.exceptionOrNull()?.message
+            )
         }
     }
 

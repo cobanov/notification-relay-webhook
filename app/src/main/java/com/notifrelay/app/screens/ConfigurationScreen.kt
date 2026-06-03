@@ -8,6 +8,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BatterySaver
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Notifications
@@ -22,6 +23,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import androidx.compose.ui.platform.LocalContext
+import com.notifrelay.app.BatteryOptimization
 import com.notifrelay.app.ForwardMode
 import com.notifrelay.app.InstalledApp
 import com.notifrelay.app.InstalledAppsProvider
@@ -46,6 +48,11 @@ fun ConfigurationScreen(
     var ignoreGroupSummary by remember { mutableStateOf(prefs.getIgnoreGroupSummary()) }
     var modeMenuExpanded by remember { mutableStateOf(false) }
     var showAppPicker by remember { mutableStateOf(false) }
+    var ignoringBatteryOptimizations by remember { mutableStateOf(BatteryOptimization.isIgnoring(context)) }
+
+    LaunchedEffect(Unit) {
+        ignoringBatteryOptimizations = BatteryOptimization.isIgnoring(context)
+    }
 
     val scroll = rememberScrollState()
 
@@ -54,7 +61,7 @@ fun ConfigurationScreen(
             .fillMaxSize()
             .padding(horizontal = 16.dp, vertical = 12.dp)
             .verticalScroll(scroll),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(9.dp)
     ) {
         Text(
             "Notification Relay",
@@ -64,7 +71,7 @@ fun ConfigurationScreen(
 
         // Notification access status
         Card(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(modifier = Modifier.padding(12.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         if (notificationAccessGranted) Icons.Filled.CheckCircle else Icons.Filled.Warning,
@@ -77,7 +84,7 @@ fun ConfigurationScreen(
                         style = MaterialTheme.typography.titleSmall
                     )
                 }
-                Spacer(Modifier.height(6.dp))
+                Spacer(Modifier.height(4.dp))
                 Text(
                     if (notificationAccessGranted)
                         "Captured notifications are forwarded to your enabled webhooks."
@@ -87,9 +94,53 @@ fun ConfigurationScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 if (!notificationAccessGranted) {
-                    Spacer(Modifier.height(10.dp))
-                    Button(onClick = onGrantNotificationAccess, modifier = Modifier.fillMaxWidth()) {
+                    Spacer(Modifier.height(8.dp))
+                    Button(
+                        onClick = onGrantNotificationAccess,
+                        shape = MaterialTheme.shapes.medium,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
                         Text("Grant notification access")
+                    }
+                }
+            }
+        }
+
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        if (ignoringBatteryOptimizations) Icons.Filled.CheckCircle else Icons.Filled.BatterySaver,
+                        contentDescription = null,
+                        tint = if (ignoringBatteryOptimizations) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.tertiary
+                        }
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        if (ignoringBatteryOptimizations) "Battery optimization unrestricted" else "Battery optimization recommended",
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                }
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    if (ignoringBatteryOptimizations)
+                        "Android is less likely to pause notification forwarding or the local server in the background."
+                    else
+                        "Allow unrestricted battery usage for more reliable forwarding, retries, and local HTTP server availability.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (!ignoringBatteryOptimizations) {
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedButton(
+                        onClick = { BatteryOptimization.openSettings(context) },
+                        shape = MaterialTheme.shapes.medium,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Open battery settings")
                     }
                 }
             }
@@ -97,9 +148,9 @@ fun ConfigurationScreen(
 
         // Forward mode
         Card(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(modifier = Modifier.padding(12.dp)) {
                 Text("Which notifications to forward", style = MaterialTheme.typography.titleSmall)
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(6.dp))
                 ExposedDropdownMenuBox(
                     expanded = modeMenuExpanded,
                     onExpandedChange = { modeMenuExpanded = it }
@@ -141,8 +192,12 @@ fun ConfigurationScreen(
                 }
 
                 if (forwardMode != ForwardMode.ALL) {
-                    Spacer(Modifier.height(10.dp))
-                    OutlinedButton(onClick = { showAppPicker = true }, modifier = Modifier.fillMaxWidth()) {
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedButton(
+                        onClick = { showAppPicker = true },
+                        shape = MaterialTheme.shapes.medium,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
                         Text(
                             if (forwardMode == ForwardMode.ALLOWLIST)
                                 "Select apps to forward (${selectedPackages.size})"
@@ -156,7 +211,7 @@ fun ConfigurationScreen(
 
         // Ignore toggles
         Card(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(modifier = Modifier.padding(12.dp)) {
                 ToggleRow(
                     title = "Ignore ongoing notifications",
                     subtitle = "Skip persistent/foreground-service notifications",
@@ -165,7 +220,7 @@ fun ConfigurationScreen(
                     ignoreOngoing = it
                     prefs.setIgnoreOngoing(it)
                 }
-                HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                HorizontalDivider(Modifier.padding(vertical = 7.dp))
                 ToggleRow(
                     title = "Ignore group summaries",
                     subtitle = "Skip the collapsed summary of grouped notifications",
@@ -214,7 +269,7 @@ private fun ToggleRow(title: String, subtitle: String, checked: Boolean, onChang
 private fun NavRow(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, onClick: () -> Unit) {
     Card(modifier = Modifier.fillMaxWidth(), onClick = onClick) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 11.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -241,6 +296,7 @@ private fun AppPickerSheet(
     var loading by remember { mutableStateOf(true) }
     var query by remember { mutableStateOf("") }
     var selected by remember { mutableStateOf(initiallySelected) }
+    var showSystemApps by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         apps = withContext(Dispatchers.IO) { InstalledAppsProvider.listApps(context) }
@@ -248,8 +304,8 @@ private fun AppPickerSheet(
     }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
-        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 24.dp)) {
-            Text("Select apps", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 20.dp)) {
+            Text("Select apps", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(8.dp))
             OutlinedTextField(
                 value = query,
@@ -260,19 +316,37 @@ private fun AppPickerSheet(
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Show system apps",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium
+                )
+                Switch(checked = showSystemApps, onCheckedChange = { showSystemApps = it })
+            }
+            Spacer(Modifier.height(8.dp))
             if (loading) {
                 Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
             } else {
-                val filtered = remember(query, apps) {
-                    if (query.isBlank()) apps
-                    else apps.filter { it.label.contains(query, true) || it.packageName.contains(query, true) }
+                val filtered = remember(query, apps, showSystemApps) {
+                    apps
+                        .filter { showSystemApps || !it.isSystemApp }
+                        .filter {
+                            query.isBlank() ||
+                                it.label.contains(query, true) ||
+                                it.packageName.contains(query, true)
+                        }
                 }
                 LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp)) {
                     items(filtered) { app ->
                         Row(
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             val bmp = remember(app.packageName) {
@@ -300,7 +374,11 @@ private fun AppPickerSheet(
                 }
             }
             Spacer(Modifier.height(12.dp))
-            Button(onClick = { onConfirm(selected) }, modifier = Modifier.fillMaxWidth()) {
+            Button(
+                onClick = { onConfirm(selected) },
+                shape = MaterialTheme.shapes.medium,
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Text("Save (${selected.size} selected)")
             }
         }

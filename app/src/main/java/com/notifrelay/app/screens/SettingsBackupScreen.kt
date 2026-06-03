@@ -78,10 +78,12 @@ fun SettingsBackupScreen(onBack: () -> Unit) {
             )
             Button(
                 onClick = { exportLauncher.launch("notification-relay-settings.json") },
+                shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.fillMaxWidth()
             ) { Text("Export settings") }
             OutlinedButton(
                 onClick = { importLauncher.launch(arrayOf("application/json")) },
+                shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.fillMaxWidth()
             ) { Text("Import settings") }
         }
