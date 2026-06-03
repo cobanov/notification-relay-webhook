@@ -1,8 +1,10 @@
 package com.notifrelay.app.screens
 
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -182,12 +184,11 @@ private fun WebhookPanel(
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
 
-            OutlinedTextField(
+            CompactFormField(
+                label = "New webhook URL",
                 value = newUrl,
                 onValueChange = onNewUrlChange,
-                label = { Text("New webhook URL") },
-                placeholder = { Text("https://example.com/hook") },
-                singleLine = true,
+                placeholder = "https://example.com/hook",
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
                 modifier = Modifier.fillMaxWidth()
             )
@@ -333,12 +334,11 @@ private fun WebhookSheet(
                 title = "Request",
                 subtitle = "POST JSON"
             ) {
-                OutlinedTextField(
+                CompactFormField(
+                    label = "Webhook URL",
                     value = url,
                     onValueChange = { url = it },
-                    label = { Text("Webhook URL") },
-                    placeholder = { Text("https://example.com/hook") },
-                    singleLine = true,
+                    placeholder = "https://example.com/hook",
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
                     isError = url.isNotBlank() && !urlValid,
                     modifier = Modifier.fillMaxWidth()
@@ -430,7 +430,7 @@ private fun WebhookSheet(
                                     }
                                 },
                                 shape = MaterialTheme.shapes.medium,
-                                modifier = Modifier.fillMaxWidth().height(42.dp)
+                                modifier = Modifier.fillMaxWidth().height(38.dp)
                             ) {
                                 Text("Add Header")
                             }
@@ -466,7 +466,7 @@ private fun WebhookSheet(
                                     }
                                 },
                                 shape = MaterialTheme.shapes.medium,
-                                modifier = Modifier.fillMaxWidth().height(42.dp)
+                                modifier = Modifier.fillMaxWidth().height(38.dp)
                             ) {
                                 Text("Apply JSON")
                             }
@@ -555,8 +555,8 @@ private fun SheetSection(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(9.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -602,7 +602,7 @@ private fun HeaderEditorRow(
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(8.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 7.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             HeaderInputRow(
@@ -612,7 +612,7 @@ private fun HeaderEditorRow(
                 onValueChange = onValueChange,
                 modifier = Modifier.weight(1f)
             )
-            IconButton(onClick = onRemove, modifier = Modifier.size(36.dp)) {
+            IconButton(onClick = onRemove, modifier = Modifier.size(32.dp)) {
                 Icon(
                     Icons.Filled.Close,
                     contentDescription = "Remove header",
@@ -657,14 +657,67 @@ private fun CompactHeaderField(
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    CompactFormField(
+        label = label,
+        value = value,
+        onValueChange = onValueChange,
+        textStyle = MaterialTheme.typography.bodySmall,
+        height = 36.dp,
+        modifier = modifier
+    )
+}
+
+@Composable
+private fun CompactFormField(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    placeholder: String = "",
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    isError: Boolean = false,
+    textStyle: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.bodySmall,
+    height: androidx.compose.ui.unit.Dp = 38.dp
+) {
+    val borderColor = when {
+        isError -> MaterialTheme.colorScheme.error
+        else -> MaterialTheme.colorScheme.outline
+    }
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        OutlinedTextField(
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        BasicTextField(
             value = value,
             onValueChange = onValueChange,
             singleLine = true,
-            textStyle = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.fillMaxWidth().height(50.dp)
+            keyboardOptions = keyboardOptions,
+            textStyle = textStyle.copy(color = MaterialTheme.colorScheme.onSurface),
+            decorationBox = { innerTextField ->
+                Surface(
+                    shape = MaterialTheme.shapes.small,
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.42f),
+                    border = BorderStroke(1.dp, borderColor),
+                    modifier = Modifier.fillMaxWidth().height(height)
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxSize().padding(horizontal = 10.dp),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        if (value.isBlank() && placeholder.isNotBlank()) {
+                            Text(
+                                placeholder,
+                                style = textStyle,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        innerTextField()
+                    }
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
         )
     }
 }
@@ -686,7 +739,7 @@ private fun SheetActions(
             onClick = onTest,
             enabled = testEnabled,
             shape = MaterialTheme.shapes.medium,
-            modifier = Modifier.weight(1f).height(46.dp)
+            modifier = Modifier.weight(1f).height(42.dp)
         ) {
             if (testInProgress) {
                 CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
@@ -702,7 +755,7 @@ private fun SheetActions(
             onClick = onSave,
             enabled = saveEnabled,
             shape = MaterialTheme.shapes.medium,
-            modifier = Modifier.weight(1f).height(46.dp)
+            modifier = Modifier.weight(1f).height(42.dp)
         ) {
             Text(actionLabel)
         }
