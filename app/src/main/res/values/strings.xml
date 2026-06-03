@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">Notification Relay</string>
+
+    <!-- Bottom navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_webhooks">Webhooks</string>
+    <string name="nav_logs">Logs</string>
+    <string name="nav_about">About</string>
+
+    <!-- Local HTTP server foreground notification -->
+    <string name="local_http_server_notification_channel_name">Local HTTP Server</string>
+    <string name="local_http_server_notification_channel_desc">Keeps the local HTTP server running.</string>
+    <string name="local_http_server_notification_title">Local HTTP server running</string>
+    <string name="local_http_server_notification_text">Serving recent notifications on port %1$d</string>
+</resources>
