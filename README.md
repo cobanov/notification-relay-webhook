@@ -4,6 +4,12 @@ Android notifications to your own webhooks.
 
 Notification Relay Webhook captures incoming Android notifications, turns them into JSON, and sends them to the webhook URLs you configure. It also keeps a local recent-notification history, delivery logs, and an optional local HTTP server for tools on your network.
 
+## Screenshots
+
+| Home | Webhooks | About |
+| :---: | :---: | :---: |
+| <img src="screenshots/01-home.png" width="220" alt="Home screen"> | <img src="screenshots/02-webhooks.png" width="220" alt="Webhooks screen"> | <img src="screenshots/03-about.png" width="220" alt="About screen"> |
+
 ## Features
 
 - Forward Android notifications to one or more webhook URLs.
