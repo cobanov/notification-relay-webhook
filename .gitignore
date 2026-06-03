@@ -9,4 +9,5 @@
 .cxx
 local.properties
 /app/release.jks
+/app/release-signing.env
 /app/build
